@@ -5,8 +5,12 @@ import {
     text,
     primaryKey,
     integer,
+    pgEnum,
   } from "drizzle-orm/pg-core"
-  import type { AdapterAccount } from "next-auth/adapters"
+  import type { AdapterAccount } from "next-auth/adapters";
+  import { createId } from '@paralleldrive/cuid2';
+
+  export const RoleEnum = pgEnum("roles", ["user", "admin"]);
   
 export const users = pgTable("user", {
     id: text("id")
@@ -14,8 +18,11 @@ export const users = pgTable("user", {
       .$defaultFn(() => crypto.randomUUID()),
     name: text("name"),
     email: text("email").unique(),
+    password: text("text"),
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
+    twoFactorEnabled: boolean("twoFactorEnabled").default(false),
+    role: RoleEnum("roles").default("user")
   })
    
   export const accounts = pgTable(
@@ -38,6 +45,21 @@ export const users = pgTable("user", {
     (account) => ({
       compoundKey: primaryKey({
         columns: [account.provider, account.providerAccountId],
+      }),
+    })
+  )
+
+  export const emailTokens = pgTable(
+    "email_tokens",
+    {
+      id: text("id").notNull().$defaultFn(() => createId()),
+      token: text("token").notNull(),
+      expires: timestamp("expires", { mode: "date" }).notNull(),
+      email: text("email").notNull(),
+    },
+    (vt) => ({
+      compositePk: primaryKey({
+        columns: [vt.id, vt.token],
       }),
     })
   )

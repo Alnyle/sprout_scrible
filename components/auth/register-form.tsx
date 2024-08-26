@@ -4,7 +4,7 @@ import { useState } from "react";
 import AuthCard from "@/components/auth/auth-card";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoginSchema } from "@/types/login-schema";
+import { RegisterSchema } from "@/types/register-schema";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -19,47 +19,69 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { emailSignIn } from '@/server/actions/email-singin';
+import { emailRegister } from '@/server/actions/email-register';
 import { useAction } from 'next-safe-action/hooks';
 import { cn } from "@/lib/utils";
+import FormSuccess from "./form-success";
+import FormError from "./form-error";
 
 
-const LoginForm = () => {
+const RegisterForm = () => {
   const form = useForm({
-    resolver: zodResolver(LoginSchema),
+    resolver: zodResolver(RegisterSchema),
     defaultValues: {
       email: "",
       password: "",
+      name: "",
     },
   });
 
-
   const [error, setError] = useState("");
-  const { execute, status } = useAction(emailSignIn, {
-    // onSuccess(data) {
-    //   if(data.success) {
-    //     // console.log(data.success)
-    //   }
-    // }
+  const [success, setSuccess] = useState("")
+  const { execute, status } = useAction(emailRegister, {
+    onSuccess(data) {
+      if (data.data?.success) {
+        setSuccess(data.data.success)
+      } else if (data.data?.error) {
+        setError(data.data?.error)
+      }
+
+    }
   });
 
 
 
-  const onSubmit = (values: z.infer<typeof LoginSchema>) => {
+  const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
     execute(values)
   };
 
   return (
     <AuthCard
-      cardTitle="Welcome back!"
-      backButtonHref="/auth/register"
-      backButtonLabel="Create a new account"
+      cardTitle="Create an account"
+      backButtonHref="/auth/login"
+      backButtonLabel="Alread have an account"
       showSocial
     >
       <div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div>
+              {/*  name field */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({field}) => (
+                  <FormItem>
+                    <FormLabel>Ueername</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter your name here" type="text"/>
+                    </FormControl>
+                    <FormDescription />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+      
               {/*  email field */}
               <FormField
                 control={form.control}
@@ -75,6 +97,7 @@ const LoginForm = () => {
                   </FormItem>
                 )}
               />
+  
 
               {/* password field */}
               <FormField
@@ -92,12 +115,15 @@ const LoginForm = () => {
                 )}
               />
 
+              <FormSuccess message={success}/>
+              <FormError message={error}/>
+ 
               <Button size={'sm'} variant={"link"} asChild>
                 <Link href='/auth/reset'>Forgot your password</Link>
               </Button>
             </div>
 
-            <Button type="submit" className={cn("w-full my-2", status == 'executing' ? 'animate-pulse' : "")}>{"Login"}</Button>
+            <Button type="submit" className={cn("w-full my-2", status == 'executing' ? 'animate-pulse' : "")}>{"Register"}</Button>
           </form>
         </Form>
       </div>
@@ -105,4 +131,4 @@ const LoginForm = () => {
   );
 };
 
-export default LoginForm;
+export default RegisterForm;
