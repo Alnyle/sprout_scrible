@@ -24,9 +24,26 @@ export const sendVericationEmail = async (email: string, token: string) => {
         console.log(error)
       }
       if (data) return data;
+}
+
+export const sendPasswordResetEmail = async (email: string, token: string) => {
 
 
+    // attach token to url to know who click the token
+    const confirmationLink = `${domain}/auth/new-password?token=${token}`;
 
+    
+    const { data, error } = await resend.emails.send({
+        from: 'Acme <onboarding@resend.dev>',
+        to: email,
+        subject: 'Hello world',
+        html: `<p>Click here <a href='${confirmationLink}'> reset your password</a></p>`,
+      });
+    
+      if (error) {
+        console.log(error)
+      }
+      if (data) return data;
 }
 
 

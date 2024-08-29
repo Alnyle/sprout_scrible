@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "..";
-import { emailTokens } from "../schema";
+import { emailTokens, passwordResetTokens } from "../schema";
 import { users } from "../schema";
 
 // query database if exist if not it will return null
@@ -47,6 +47,7 @@ export const generateEmailVericiationToken = async (email: string) => {
 }
 
 
+// 
 export const newVerification = async (token: string) => {
 
     const existingToken = await getVericiationTokenByEmail(token);
@@ -70,7 +71,61 @@ export const newVerification = async (token: string) => {
 
     await db.delete(emailTokens).where(eq(emailTokens.id, existingToken.id))
 
-
     return { success: "Email Verified" }
+}
 
+export const getPasswordResetTokenByToken = async (token: string) => {
+
+    try {
+        const passwordResetToken = await db.query.passwordResetTokens.findFirst({
+            where: eq(passwordResetTokens.token, token)
+        })
+        return passwordResetToken
+    } catch(error) {
+        return null
+    }
+}
+
+
+export const getPasswordResetTokenByEmail = async (email: string) => {
+    try {
+        const passwordResetToken = await db.query.passwordResetTokens.findFirst({
+            where: eq(passwordResetTokens.email, email)
+        })
+        return passwordResetToken
+    } catch(error) {
+        return null
+    }
+}
+
+
+// generate token by using email if there a token for this delete it and generate new one
+export const generatePasswordResetToken = async (email: string) => {
+
+
+    try {
+
+        // generater from the token
+        const token = crypto.randomUUID();
+
+        // generate expires date which is after 36 hours
+        const expires = new Date(new Date().getTime() + 3600 * 1000);
+
+        const existingToken = await getPasswordResetTokenByEmail(email);
+
+        if (existingToken) {
+            await db
+            .delete(passwordResetTokens)
+            .where(eq(passwordResetTokens.id, existingToken.id))
+        }
+
+        const passwordResetToken = await db.insert(passwordResetTokens).values({
+            email,
+            token,
+            expires,  
+        }).returning();
+        return { success: passwordResetToken }
+    } catch(error) {
+        return null
+    }
 }
