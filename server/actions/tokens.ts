@@ -2,8 +2,9 @@
 
 import { eq } from "drizzle-orm";
 import { db } from "..";
-import { emailTokens, passwordResetTokens } from "../schema";
+import { emailTokens, passwordResetTokens, twoFactorTokens } from "../schema";
 import { users } from "../schema";
+import crypto from "crypto";
 
 // query database if exist if not it will return null
 const getVericiationTokenByEmail = async (email: string) => {
@@ -125,6 +126,63 @@ export const generatePasswordResetToken = async (email: string) => {
             expires,  
         }).returning();
         return { success: passwordResetToken }
+    } catch(error) {
+        return null
+    }
+}
+
+export const getTwoFactorTokenByEmail = async (email: string) => {
+    try {
+        const twoFactorToken = await db.query.twoFactorTokens.findFirst({
+            where: eq(twoFactorTokens.email, email)
+        })
+        return twoFactorToken
+    } catch(error) {
+        return null
+    }
+}
+
+
+export const getTwoFactorTokenByToken = async (token: string) => {
+
+    try {
+        const twoFactorToken = await db.query.twoFactorTokens.findFirst({
+            where: eq(twoFactorTokens.token, token)
+        })
+        return twoFactorToken
+    } catch(error) {
+        return null
+    }
+}
+
+
+
+// generate token by using email if there a token for this delete it and generate new one
+export const generateTwoFactorToken = async (email: string) => {
+
+
+    try {
+
+        // generater from the token
+        const token = crypto.randomInt(100_000, 1_000_000).toString();
+
+        // generate expires date which is after 36 hours
+        const expires = new Date(new Date().getTime() + 3600 * 1000);
+
+        const existingToken = await getTwoFactorTokenByEmail(email);
+
+        if (existingToken) {
+            await db
+            .delete(twoFactorTokens)
+            .where(eq(twoFactorTokens.id, existingToken.id))
+        }
+
+        const twoFactorToken = await db.insert(twoFactorTokens).values({
+            email,
+            token,
+            expires,  
+        }).returning();
+        return twoFactorToken
     } catch(error) {
         return null
     }

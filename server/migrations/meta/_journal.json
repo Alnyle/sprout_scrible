@@ -57,6 +57,13 @@
       "when": 1724883119038,
       "tag": "0007_skinny_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1725112286644,
+      "tag": "0008_omniscient_wallop",
+      "breakpoints": true
     }
   ]
 }

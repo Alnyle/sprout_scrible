@@ -47,4 +47,22 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
 }
 
 
-// RESEND_API_KEY
+export const sendTwoFactorTokenByEmail = async (email: string, token: string) => {
+
+
+  // attach token to url to know who click the token
+  const confirmationLink = `${domain}/auth/new-vericiation-token?token=${token}`;
+
+  
+  const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>',
+      to: email,
+      subject: 'sproud and scrible - your 2 Factor token',
+      html: `<p>Your Confirmation Code: ${token}</p>`,
+    });
+  
+    if (error) {
+      console.log(error)
+    }
+    if (data) return data;
+}
