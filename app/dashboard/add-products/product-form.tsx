@@ -24,23 +24,103 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DollarSign } from "lucide-react";
+import Tiptap from "./tiptap";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAction } from "next-safe-action/hooks";
+import { createProduct } from "@/server/actions/create-products";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { getProduct } from "@/server/actions/get-product";
 
 const ProductForm = () => {
+
+  
   const form = useForm<zProductSchema>({
+    resolver: zodResolver(ProductSchema),
     defaultValues: {
       title: "",
       description: "",
       price: 0,
     },
+    mode: "onChange",
   });
 
-  const onSubmit = () => {};
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+
+  const router = useRouter();
+  const searchProduct = useSearchParams();
+  const editMode = searchProduct.get("id");
+
+
+  const checkProduct = async (id: number) => {
+    if (editMode) {
+      const data = await getProduct(id);
+      if (data.error) {
+        toast.error(error);
+        router.push('/dashboard/products');
+        return;
+      }
+
+      if (data.success) {
+        const id = parseInt(editMode);
+        form.setValue("title", data.success.title)
+        form.setValue("description", data.success.description)
+        form.setValue("price", data.success.price)
+        form.setValue("id", id)
+      }
+      
+    }
+  }
+
+
+  useEffect(() => {
+    if (editMode) {
+      checkProduct(parseInt(editMode))
+    }
+
+  }, [])
+
+
+
+  const { execute, status } = useAction(createProduct, {
+    onSuccess: (data) => {
+      if (data.data?.success) {
+        router.push("/dashboard/products")
+        toast.success(data.data?.success);
+      }
+      if (data.data?.error) {
+        toast.error(data.data?.error);
+      }
+    },
+    onExecute: (data) => {
+      if (editMode) {
+        toast.loading("Editing Product")
+      } 
+      if (!editMode) {
+        toast.loading("Creating Product")
+      }
+    }
+
+  })
+
+  async function onSubmit(values: zProductSchema) {
+    execute(values)
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Card Title</CardTitle>
-        <CardDescription>Card Description</CardDescription>
+        <CardTitle>
+          {editMode ? "Edit product" : "Create Product"}
+        </CardTitle>
+        <CardDescription>
+          {editMode
+          ? "Make changes to existing product"
+          : "Add a brand new product"}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -66,7 +146,7 @@ const ProductForm = () => {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    {/* <Input placeholder="Product Title" {...field} />  */}
+                    <Tiptap val={field.value}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,13 +172,15 @@ const ProductForm = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">Submit</Button>
+            <Button 
+              type="submit" 
+              disabled={status === 'executing' || !form.formState.isValid || !form.formState.isDirty } 
+              className="w-full">
+                {editMode ? "Save Changes" : "Create Product"}
+            </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter>
-        <p>Card Footer</p>
-      </CardFooter>
     </Card>
   );
 };
